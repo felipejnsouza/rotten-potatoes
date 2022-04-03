@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  CI:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,6 +25,22 @@ jobs:
           file: ./src/Dockerfile
           push: true
           tags: |
-            felipejnsouza/rotten-potatoes:latest
-            felipejnsouza/rotten-potatoes:v${{ github.run_number }}
-            
+            fnasci/rotten-potatoes:latest
+            fnasci/rotten-potatoes:v${{ github.run_number }}
+  CD:
+    needs: [CI]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Kubernetes Set Context
+        uses: Azure/k8s-set-context@v2
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.K8S_KUBECONFIG }}
+      - name: Deploy to Kubernetes cluster
+        uses: Azure/k8s-deploy@v3.0
+        with:
+          images: fnasci/rotten-potatoes:v${{ github.run_number }}
+          manifests: |
+            k8s/deployment.yaml
+      
